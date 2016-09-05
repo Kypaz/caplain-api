@@ -10,9 +10,9 @@ sudo make install
 
 ## BUG
 
-# Print all <I> tags : some unwanted
+Print all <I> tags : some unwanted
 
-# Bug with some "donnees" DIV containing <A tags> as this one
+Bug with some "donnees" DIV containing <A tags> as this one
 ```
 <DIV CLASS="donnees">
 pression 1020 mb
@@ -21,5 +21,6 @@ pression 1020 mb
 à 3000m hors-sol: 5°C, vent NW->Nord/20-25 noeuds, +fort à l'Ouest
 iso 0°: 3900->4400m
 </DIV>
+```
 
-# No carriage return for donnees div, encoding messing up ?
+No carriage return for donnees div, encoding messing up ?
