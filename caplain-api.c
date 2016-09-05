@@ -3,6 +3,73 @@
 #include <tidybuffio.h>
 #include <curl/curl.h>
 
+void print_node(TidyDoc doc, TidyNode tnod) 
+{
+    TidyBuffer buf;
+    tidyBufInit(&buf);
+    tidyNodeGetText(doc, tnod, &buf);
+    printf("%s\n", buf.bp?(char *)buf.bp:""); 
+    tidyBufFree(&buf);
+}
+
+void handle_print_class(TidyDoc doc, TidyNode tnod, TidyAttr attr) 
+{
+    TidyNode prt_nod;
+    if (tidyAttrValue(attr) == NULL) {
+        return;
+    }
+
+    if (!strcmp(tidyAttrValue(attr), "titre")) {
+        printf("\n");        
+    }
+
+    if (!strcmp(tidyAttrValue(attr), "titre")
+            || !strcmp(tidyAttrValue(attr), "donnees") 
+            || !strcmp(tidyAttrValue(attr), "blabla")) {
+
+        prt_nod = tidyGetChild(tnod);
+        print_node(doc, prt_nod);
+    }
+}
+
+void handle_print_tags(TidyDoc doc, TidyNode tnod, ctmbstr name) 
+{
+    TidyNode prt_nod, prt2_nod;
+
+    if (!strcmp(name, "title")) {
+        printf("\n");
+    }
+
+    if (!strcmp(name, "title")) {
+        prt_nod = tidyGetChild(tnod);
+        print_node(doc, prt_nod);
+    }
+}
+
+/* Traverse the document tree */ 
+void process_tree(TidyDoc doc, TidyNode tnod)
+{
+    TidyNode child;
+    for(child = tidyGetChild(tnod); child; child = tidyGetNext(child) ) {
+        ctmbstr name = tidyNodeGetName(child);
+        if(name) {
+            /* if it has a name, then it's an HTML tag ... */ 
+            TidyAttr attr;
+            handle_print_tags(doc, child, name);       
+            
+            /* walk the attribute list */ 
+            for(attr=tidyAttrFirst(child); attr; attr=tidyAttrNext(attr)) {
+                handle_print_class(doc, child, attr);       
+            }
+        }
+        else {
+            /* if it doesn't have a name, then it's probably text, cdata, etc... */ 
+            // print_node(doc, child);
+        }
+        process_tree(doc, child); /* recursive */ 
+    }
+}
+
 int iso_8859_1s_to_utf8s(char *utf8str, const char *mbstr, size_t count)
 {
     int res = 0;
@@ -56,47 +123,17 @@ uint write_cb(char *in, uint size, uint nmemb, TidyBuffer *out)
     char *bufenc;
     bufenc = malloc(r);
     int rc = iso_8859_1s_to_utf8s(bufenc, in, r);
-    printf("%s\n", bufenc);
+    //printf("%s\n", bufenc);
     tidyBufAppend(out, bufenc, r);
+    free(bufenc);
     return r;
 }
-
-/* Traverse the document tree */ 
-void dumpNode(TidyDoc doc, TidyNode tnod)
-{
-    TidyNode child;
-    for(child = tidyGetChild(tnod); child; child = tidyGetNext(child) ) {
-        ctmbstr name = tidyNodeGetName(child);
-        if(name) {
-            /* if it has a name, then it's an HTML tag ... */ 
-            TidyAttr attr;
-            //printf("%s\n", name);
-            /* walk the attribute list */ 
-            for(attr=tidyAttrFirst(child); attr; attr=tidyAttrNext(attr) ) {
-                //printf(tidyAttrName(attr));
-                /*tidyAttrValue(attr)?printf("=\"%s\" ",
-                        tidyAttrValue(attr)):printf(" ");*/
-            }
-            //printf(">\n");
-        }
-        else {
-            /* if it doesn't have a name, then it's probably text, cdata, etc... */ 
-            TidyBuffer buf;
-            tidyBufInit(&buf);
-            tidyNodeGetText(doc, child, &buf);
-            printf("%s\n", buf.bp?(char *)buf.bp:"");
-            tidyBufFree(&buf);
-        }
-        dumpNode(doc, child); /* recursive */ 
-    }
-}
-
 
 int main(int argc, char **argv)
 {
     CURL *curl;
     char curl_errbuf[CURL_ERROR_SIZE];
-    char *url = "http://mto38.free.fr/frog";
+    char *url = "http://mto38.free.fr";
     TidyDoc tdoc;
     TidyBuffer docbuf = {0};
     TidyBuffer tidy_errbuf = {0};
@@ -104,8 +141,6 @@ int main(int argc, char **argv)
     curl = curl_easy_init();
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curl_errbuf);
-    // curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
-    // curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
 
     tdoc = tidyCreate();
@@ -124,12 +159,13 @@ int main(int argc, char **argv)
             if(err >= 0) {
                 err = tidyRunDiagnostics(tdoc); /* load tidy error buffer */ 
                 if(err >= 0) {
-                    dumpNode(tdoc, tidyGetRoot(tdoc)); /* walk the tree */ 
+                    process_tree(tdoc, tidyGetRoot(tdoc)); /* walk the tree */ 
                     // fprintf(stderr, "%s\n", tidy_errbuf.bp); /* show errors */ 
                 }
             }
         }
     }
+
     /* clean-up */ 
     curl_easy_cleanup(curl);
     tidyBufFree(&docbuf);
