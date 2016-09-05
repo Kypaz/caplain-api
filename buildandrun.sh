@@ -1,1 +1,1 @@
-gcc caplain-api.c -lcurl -ltidy -lm -o caplain-api && ./caplain-api
+gcc caplain-api.c -lcurl -ltidy -lm -o caplain-api.exe && ./caplain-api.exe
