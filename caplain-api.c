@@ -38,9 +38,12 @@ void handle_print_tags(TidyDoc doc, TidyNode tnod, ctmbstr name)
 
     if (!strcmp(name, "title")) {
         printf("\n");
+        prt_nod = tidyGetChild(tnod);
+        print_node(doc, prt_nod);
     }
 
-    if (!strcmp(name, "title")) {
+    if (!strcmp(name, "i")) {
+        printf("\n");
         prt_nod = tidyGetChild(tnod);
         print_node(doc, prt_nod);
     }
