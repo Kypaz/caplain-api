@@ -3,15 +3,40 @@
 #include <tidybuffio.h>
 #include <curl/curl.h>
 
+char *str_replace ( const char *string, const char *substr, const char *replacement ){
+  char *tok = NULL;
+  char *newstr = NULL;
+  char *oldstr = NULL;
+  /* if either substr or replacement is NULL, duplicate string a let caller handle it */
+  if ( substr == NULL || replacement == NULL ) return strdup (string);
+  newstr = strdup (string);
+  while ( (tok = strstr ( newstr, substr ))){
+    oldstr = newstr;
+    newstr = malloc ( strlen ( oldstr ) - strlen ( substr ) + strlen ( replacement ) + 1 );
+    /*failed to alloc mem, free old string and return NULL */
+    if ( newstr == NULL ){
+      free (oldstr);
+      return NULL;
+    }
+    memcpy ( newstr, oldstr, tok - oldstr );
+    memcpy ( newstr + (tok - oldstr), replacement, strlen ( replacement ) );
+    memcpy ( newstr + (tok - oldstr) + strlen( replacement ), tok + strlen ( substr ), strlen ( oldstr ) - strlen ( substr ) - ( tok - oldstr ) );
+    memset ( newstr + strlen ( oldstr ) - strlen ( substr ) + strlen ( replacement ) , 0, 1 );
+    free (oldstr);
+  }
+  return newstr;
+}
+
 void print_node(TidyDoc doc, TidyNode tnod, int is_end_line)
 {
     TidyBuffer buf;
     tidyBufInit(&buf);
     tidyNodeGetText(doc, tnod, &buf);
+    char *result = buf.bp?str_replace((char *)buf.bp,"&gt;",">"):"";
     if (is_end_line)
-      printf("%s\n", buf.bp?(char *)buf.bp:"");
+      printf("%s\n", result);
     else
-      printf("%s", buf.bp?(char *)buf.bp:"");
+      printf("%s", result);
 
     tidyBufFree(&buf);
 }
